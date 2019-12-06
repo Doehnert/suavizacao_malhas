@@ -64,20 +64,26 @@ class Malha:
         self.volumes = []
         self.nos = []
         box1 = tr.get_data('ell')
+        '''
+        box1 tem a seguinte estrutura:
+        triangles -> matriz com todos os triangulos da malha cada triangulo ex: [1,2,3]
+        vertex_markers -> marca os vertices que fazem fronteira no dominio
+        vertices -> tabela com as coordenadas de todos os vertices da malha
+        '''
         self.box2 = tr.triangulate(box1, 'ra0.3')
+        '''
+        self.box2 tem a mesma estrutura que box1 mas tem a triangulação mais acentuada
+        '''
 
         # la = tr.get_data('la')
         # self.box2 = tr.triangulate(la, 'pq')
-
         # lake_superior = read_poly("superior.poly")
         # vertices_ls = lake_superior['vertices']
         # tri = Delaunay(vertices_ls)
-
         # for i in range(len(self.box2['vertices'])):
         #     if self.box2['vertex_markers'][i]==0:
         #         self.box2['vertices'][i][0] += 0.1
         #         self.box2['vertices'][i][1] += 0.1
-
 
         self.vols = self.box2['triangles'].tolist()
         self.verts = self.box2['vertices'].tolist()
@@ -87,7 +93,7 @@ class Malha:
             vert[0] = vert[0]/4
             vert[1] = vert[1]/4
 
-
+        # Desordena a malha
         self.verts[7][1] -= 0.11
         self.verts[16][0] -= 0.1
         self.verts[16][1] += 0.1
@@ -100,20 +106,19 @@ class Malha:
 
         self.box2['vertices'] = self.verts
 
-
         self.vertices_reais = self.verts.copy()
         self.volumes_reais = self.vols.copy()
-
         self.salva_malha('foo.vtk')
         self.carrega_malha('foo.vtk')
-        # self.resolve()
     
     def melhora_malha(self):
-        # X = self.verts
+        """
+        Roda algum algoritmo de melhoramento da malha
+        """
         X = asarray(self.vertices_reais)
         cells = asarray(self.volumes_reais)
-        X, cells = optimesh.cpt.fixed_point_uniform(X, cells, Infinity , 50)
-        # X, cells = optimesh.odt.fixed_point_uniform(X, cells, Infinity, 10000, 1)
+        # X, cells = optimesh.cpt.fixed_point_uniform(X, cells, Infinity , 50)
+        X, cells = optimesh.odt.fixed_point_uniform(X, cells, Infinity, 10000, 1)
         # X, cells = optimesh.cpt.quasi_newton_uniform(X, cells, Infinity, 50)
         self.verts = X
         self.vols = cells
@@ -121,13 +126,15 @@ class Malha:
         # self.angular_smoothing()
         # self.verts = X
 
+        # Salva a malha melhorada no arquivo out.vtk
         self.salva_malha('out.vtk')
         self.carrega_malha('out.vtk')
         return
 
     def carrega_malha(self, file):
-        ''' Baseado na malha foo.vtk, cria os objetos correspondentes '''
-
+        '''
+        Baseado na malha foo.vtk, cria os objetos correspondentes
+        '''
         self.volumes.clear()
         self.nos.clear()
         # self.verts.clear()
@@ -207,42 +214,42 @@ class Malha:
 
         
         # ALGORITMO: Melhoramento por Angulos ***
-        for no in self.nos:
-            if no.fronteira==False:
-                valoresX = []
-                valoresY = []
-                for i in range(1,len(no.vizinhos)-1):
-                    Ni = no.valor
-                    Nj_mais1 = no.vizinhos[i+1].valor
-                    Nj_menos1 = no.vizinhos[i-1].valor
-                    Nj = no.vizinhos[i].valor
+        # for no in self.nos:
+        #     if no.fronteira==False:
+        #         valoresX = []
+        #         valoresY = []
+        #         for i in range(1,len(no.vizinhos)-1):
+        #             Ni = no.valor
+        #             Nj_mais1 = no.vizinhos[i+1].valor
+        #             Nj_menos1 = no.vizinhos[i-1].valor
+        #             Nj = no.vizinhos[i].valor
 
-                    vj = np.array([Ni[0]-Nj[0],Ni[1]-Nj[1]])
-                    vj_mais1 = np.array([Nj_mais1[0]-Nj[0],Nj_mais1[1]-Nj[1]])
-                    vj_menos1 = np.array([Nj_menos1[0]-Nj[0],Nj_menos1[1]-Nj[1]])
+        #             vj = np.array([Ni[0]-Nj[0],Ni[1]-Nj[1]])
+        #             vj_mais1 = np.array([Nj_mais1[0]-Nj[0],Nj_mais1[1]-Nj[1]])
+        #             vj_menos1 = np.array([Nj_menos1[0]-Nj[0],Nj_menos1[1]-Nj[1]])
 
-                    denominador = (LA.norm(vj, 2))*(LA.norm(vj_mais1, 2))
-                    denominador2 = (LA.norm(vj, 2))*(LA.norm(vj_menos1, 2))
-                    # print(denominador)
+        #             denominador = (LA.norm(vj, 2))*(LA.norm(vj_mais1, 2))
+        #             denominador2 = (LA.norm(vj, 2))*(LA.norm(vj_menos1, 2))
+        #             # print(denominador)
 
-                    alpha1 = math.acos(np.dot(vj,vj_mais1)/denominador)
-                    alpha2 = math.acos(np.dot(vj,vj_menos1)/denominador2)
+        #             alpha1 = math.acos(np.dot(vj,vj_mais1)/denominador)
+        #             alpha2 = math.acos(np.dot(vj,vj_menos1)/denominador2)
 
-                    Betaj = (alpha2-alpha1)/2
+        #             Betaj = (alpha2-alpha1)/2
 
-                    x, y = Ni[0],Ni[1]
-                    x0, y0 = Nj[0], Nj[1]
+        #             x, y = Ni[0],Ni[1]
+        #             x0, y0 = Nj[0], Nj[1]
 
-                    xl = x0 + (x-x0)*math.cos(Betaj)-(y-y0)*math.sin(Betaj)
-                    yl = y0 + (x-x0)*math.sin(Betaj)+(y-y0)*math.cos(Betaj)
+        #             xl = x0 + (x-x0)*math.cos(Betaj)-(y-y0)*math.sin(Betaj)
+        #             yl = y0 + (x-x0)*math.sin(Betaj)+(y-y0)*math.cos(Betaj)
 
-                    valoresX.append(xl)
-                    valoresY.append(yl)
+        #             valoresX.append(xl)
+        #             valoresY.append(yl)
 
-                xl = sum(valoresX)/len(valoresX)
-                yl = sum(valoresY)/len(valoresY)
+        #         xl = sum(valoresX)/len(valoresX)
+        #         yl = sum(valoresY)/len(valoresY)
 
-                no.valor = np.array([xl,yl,0])
+        #         no.valor = np.array([xl,yl,0])
 
 
         cont = 0
@@ -423,7 +430,7 @@ class Malha:
                             break
         # self.plotar()
         return
-    
+
     def plotar(self, cor):
         plt.clf()
         # plt.ion()
@@ -451,6 +458,9 @@ class Malha:
         # plt.pause(0.001)
 
     def resolve(self, it=10):
+        '''
+        Resolve o problema especificado na dissertação com a malha atual
+        '''
         faces = 0
         N = len(self.volumes)
         a = zeros([N,N])
