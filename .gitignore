@@ -6,6 +6,7 @@ trabalho/
 teste/
 *.vtk
 .vscode/
+.worktrees/
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
