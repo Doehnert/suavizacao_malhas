@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from mesh_smoothing.mesh import DEFORMED_ELL_PERTURBATIONS, Mesh
+from mesh_smoothing.mesh import Mesh
 
 
 @pytest.fixture

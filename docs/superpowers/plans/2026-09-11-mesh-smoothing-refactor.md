@@ -631,9 +631,20 @@ def test_builds_one_node_per_vertex(two_triangles):
 
 
 def test_adjacent_triangles_become_neighbors(two_triangles):
-    first, second = two_triangles.volumes
-    assert first.neighbors == [second]
-    assert second.neighbors == [first]
+    # AMENDMENT (2026-09-11, implementer + controller verified vs legacy
+    # malha.py seta_vizinhos): the original unpacked `first, second =
+    # two_triangles.volumes` and asserted exact list equality. That fixture
+    # actually yields 6 volumes (2 real + 4 boundary ghosts), so unpacking
+    # two raised ValueError and exact single-neighbor equality could never
+    # hold (real volumes neighbor their boundary ghosts too). Legacy
+    # malha.py:408-430 links every volume (real + fictitious) that shares
+    # an edge. The corrected test asserts the real intent: the two real
+    # triangles are mutual neighbors.
+    first, second = (
+        volume for volume in two_triangles.volumes if not volume.fictitious
+    )
+    assert second in first.neighbors
+    assert first in second.neighbors
 
 
 def test_markers_are_applied_to_node_boundary():
