@@ -52,7 +52,7 @@ def test_p_is_centroid_array(n0, n1, n2):
     np.testing.assert_allclose(volume.P, [1 / 3, 1 / 3])
 
 
-def test_direct_diffusion_is_symmetric(n0, n1, n2, n3):
+def test_direct_diffusion_sign_depends_on_winding(n0, n1, n2, n3):
     a = Volume(n0, n1, n2, label=0)
     b = Volume(n0, n1, n3, label=1)
     forward = a.direct_diffusion(b)

@@ -323,13 +323,22 @@ def test_p_is_centroid_array(n0, n1, n2):
     np.testing.assert_allclose(volume.P, [1 / 3, 1 / 3])
 
 
-def test_direct_diffusion_is_symmetric(n0, n1, n2, n3):
+def test_direct_diffusion_sign_depends_on_winding(n0, n1, n2, n3):
+    # AMENDMENT (2026-09-11, implementer + controller verified vs legacy
+    # volume.py difusao_direta): the original asserted backward == forward
+    # (symmetry). That only holds when both volumes store the shared face
+    # with OPPOSITE orientation (consistent CCW winding: n and e_xi both
+    # flip, so n_dot_e_xi is unchanged). This fixture winds a CCW and b
+    # CW, so both store the shared edge (n0, n1) identically and only
+    # e_xi flips: n=(0,-1), n_dot_e_xi = +2/sqrt(5) forward and
+    # -2/sqrt(5) backward => di = +1.5 forward, -1.5 backward. Legacy
+    # malha.py consumes it signed (a[i][j] = -di). Keep as-is.
     a = Volume(n0, n1, n2, label=0)
     b = Volume(n0, n1, n3, label=1)
     forward = a.direct_diffusion(b)
     backward = b.direct_diffusion(a)
     assert forward == pytest.approx(1.5)
-    assert backward == pytest.approx(forward)
+    assert backward == pytest.approx(-1.5)
 
 
 def test_cross_diffusion_exact_value(n0, n1, n2, n3, n4):
