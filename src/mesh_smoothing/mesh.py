@@ -82,21 +82,36 @@ class Mesh:
         return cls(vertices, triangles, markers)
 
     @classmethod
-    def load(cls, path: str) -> Mesh:  # implemented in Task 5
+    def load(cls, path: str) -> Mesh:
         """Load a mesh from a VTK file written by :meth:`save`."""
-        raise NotImplementedError("meshio I/O lands in Task 5")
+        from mesh_smoothing.io import load_mesh
 
-    def save(self, path: str) -> None:  # implemented in Task 5
-        """Write the current mesh to a VTK file."""
-        raise NotImplementedError("meshio I/O lands in Task 5")
+        vertices, triangles = load_mesh(path)
+        return cls(vertices, triangles)
+
+    def save(self, path: str) -> None:
+        """Write the current mesh (real vertices + triangles) to a VTK file."""
+        from mesh_smoothing.io import save_mesh
+
+        save_mesh(self.real_vertices, self.real_triangles, path)
 
     def improve(self, num_steps: int = 1) -> None:
         """Smooth the mesh with the in-package ODT fixed-point iteration.
 
-        [Implemented in Task 5 via mesh_smoothing.smoothing. Temporary body
-        keeps the class importable for Task 4 tests.]
+        Operates on the real (non-ghost) geometry snapshot and rebuilds the
+        graph after smoothing (equivalent of the original ``out.vtk`` round
+        trip, minus disk I/O).
         """
-        raise NotImplementedError("ODT smoothing lands in Task 5")
+        from mesh_smoothing.smoothing import smooth_odt
+
+        x = np.asarray(self.real_vertices[:, :2], dtype=float)
+        cells = np.asarray(self.real_triangles)
+        x, cells = smooth_odt(x, cells, num_steps=num_steps)
+        self.vertices = np.column_stack((x, np.zeros(len(x))))
+        self.triangles = cells
+        self.real_vertices = np.array(self.vertices, copy=True)
+        self.real_triangles = np.array(cells, copy=True)
+        self._rebuild()
 
     def _rebuild(self) -> None:
         """Recreate the node/volume graph from the current geometry."""
