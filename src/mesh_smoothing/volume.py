@@ -188,9 +188,7 @@ class Volume:
         return float(cross)
 
     @staticmethod
-    def _angle_between(
-        v1: NDArray[np.floating], v2: NDArray[np.floating]
-    ) -> float:
+    def _angle_between(v1: NDArray[np.floating], v2: NDArray[np.floating]) -> float:
         """Angle in radians between two vectors."""
         unit = np.clip(np.dot(v1, v2), -1.0, 1.0)
         return float(np.arccos(unit))

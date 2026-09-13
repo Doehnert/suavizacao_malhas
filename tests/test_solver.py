@@ -17,7 +17,7 @@ def test_manufactured_solution_at_corners():
 
 
 def test_source_term_matches_closed_form():
-    expected = -(np.pi ** 2) / 2 * np.sin(np.pi / 4) ** 2
+    expected = -(np.pi**2) / 2 * np.sin(np.pi / 4) ** 2
     assert source_term(0.5, 0.5) == pytest.approx(expected)
 
 

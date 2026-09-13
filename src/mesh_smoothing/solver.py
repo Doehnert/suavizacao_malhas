@@ -26,9 +26,7 @@ def source_term(x: float, y: float) -> float:
     -S (the legacy sign convention), so the solver assembles
     ``rhs = -source_term(...) * area + cross_sum``.
     """
-    return float(
-        -(PI ** 2) / 2.0 * np.sin(PI * x / 2.0) * np.sin(PI * y / 2.0)
-    )
+    return float(-(PI**2) / 2.0 * np.sin(PI * x / 2.0) * np.sin(PI * y / 2.0))
 
 
 def _boundary_value(mesh: Mesh, volume: Volume, x: float, y: float) -> float:
@@ -47,17 +45,11 @@ def _boundary_value(mesh: Mesh, volume: Volume, x: float, y: float) -> float:
         if v1[1] == 1.0 and v2[1] == 1.0:  # top edge: T = sin(pi x / 2)
             value = float(np.sin(PI * x / 2.0))
         if (
-            v1[0] == 0.5
-            and v2[0] == 0.5
-            and v1[1] >= 0.5
-            and v2[1] >= 0.5
+            v1[0] == 0.5 and v2[0] == 0.5 and v1[1] >= 0.5 and v2[1] >= 0.5
         ):  # inner vertical wall
             value = float(np.sqrt(2.0) / 2.0 * np.sin(PI * x / 2.0))
         if (
-            v1[1] == 0.5
-            and v2[1] == 0.5
-            and v1[0] >= 0.5
-            and v2[0] >= 0.5
+            v1[1] == 0.5 and v2[1] == 0.5 and v1[0] >= 0.5 and v2[0] >= 0.5
         ):  # inner horizontal wall
             value = float(np.sin(PI * y / 2.0))
     return value
@@ -105,9 +97,7 @@ def solve_diffusion(mesh: Mesh, iterations: int = 10) -> NDArray[np.floating]:
     return np.array([volume.temperature for volume in mesh.volumes], dtype=float)
 
 
-def maximum_differences(
-    mesh: Mesh, top: int = 5
-) -> list[tuple[int, float]]:
+def maximum_differences(mesh: Mesh, top: int = 5) -> list[tuple[int, float]]:
     """Return the ``top`` largest |numerical - analytical| differences.
 
     Evaluated at every volume centroid (including fictitious volumes, as the

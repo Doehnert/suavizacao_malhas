@@ -570,9 +570,7 @@ class Volume:
         return float(cross)
 
     @staticmethod
-    def _angle_between(
-        v1: NDArray[np.floating], v2: NDArray[np.floating]
-    ) -> float:
+    def _angle_between(v1: NDArray[np.floating], v2: NDArray[np.floating]) -> float:
         """Angle in radians between two vectors."""
         unit = np.clip(np.dot(v1, v2), -1.0, 1.0)
         return float(np.arccos(unit))
@@ -965,15 +963,11 @@ def test_square_with_interior_vertex_matches_published_anchor():
     # simple1 in the optimesh ODT test suite: unit square + interior vertex at
     # (0.4, 0.5). One ODT step moves the interior vertex to (0.4877..., 0.5)
     # (raw target (0.5, 0.5) clamped by 0.5 * min inradius).
-    points = np.array(
-        [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.4, 0.5]]
-    )
+    points = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.4, 0.5]])
     cells = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]])
     new_points, new_cells = smooth_odt(points, cells)
     # published anchor (1e-12 precision):
-    np.testing.assert_allclose(
-        new_points[4], [0.48769526483955306, 0.5], atol=1e-12
-    )
+    np.testing.assert_allclose(new_points[4], [0.48769526483955306, 0.5], atol=1e-12)
     # boundary vertices never move:
     np.testing.assert_allclose(new_points[:4], points[:4], atol=1e-12)
     # connectivity is preserved (already Delaunay, no flips):
@@ -1083,7 +1077,12 @@ EPS = 1.0e-12
 
 def _cell_geometry(
     points: NDArray[np.floating], cells: NDArray[np.integer]
-) -> tuple[NDArray[np.floating], NDArray[np.floating], NDArray[np.floating], NDArray[np.floating]]:
+) -> tuple[
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+]:
     """Per-cell area, circumcentre, barycentre, and inradius.
 
     Half-edges: e0 = P2-P1, e1 = P0-P2, e2 = P1-P0.
@@ -1131,9 +1130,7 @@ def _edge_ce_ratios(
     ce_k = -<e_{k+1},e_{k+2}>/(4A) for the edge opposite local node k.
     """
     ncells = len(cells)
-    edges = np.vstack(
-        [cells[:, [1, 2]], cells[:, [2, 0]], cells[:, [0, 1]]]
-    )
+    edges = np.vstack([cells[:, [1, 2]], cells[:, [2, 0]], cells[:, [0, 1]]])
     ea = np.minimum(edges[:, 0], edges[:, 1])
     eb = np.maximum(edges[:, 0], edges[:, 1])
     keys = ea * len(points) + eb
@@ -1223,9 +1220,7 @@ def _boundary_masks(
     matching _flip_until_delaunay), so the per-cell mask is
     reshape(3, -1).T — NOT reshape(-1, 3).
     """
-    edges = np.vstack(
-        [cells[:, [0, 1]], cells[:, [1, 2]], cells[:, [2, 0]]]
-    )
+    edges = np.vstack([cells[:, [0, 1]], cells[:, [1, 2]], cells[:, [2, 0]]])
     ea = np.minimum(edges[:, 0], edges[:, 1])
     eb = np.maximum(edges[:, 0], edges[:, 1])
     keys = ea * num_points + eb
@@ -1263,12 +1258,8 @@ def smooth_odt(
 
     for _ in range(num_steps):
         cells = _flip_until_delaunay(points, cells)
-        areas, circumcentres, barycentres, inradii = _cell_geometry(
-            points, cells
-        )
-        is_boundary_cell, is_boundary_point = _boundary_masks(
-            cells, len(points)
-        )
+        areas, circumcentres, barycentres, inradii = _cell_geometry(points, cells)
+        is_boundary_cell, is_boundary_point = _boundary_masks(cells, len(points))
         centres = np.where(is_boundary_cell[:, None], barycentres, circumcentres)
         numerator = np.zeros_like(points)
         denominator = np.zeros(len(points))
@@ -1367,44 +1358,46 @@ def load_mesh(path: str) -> tuple[NDArray[np.floating], NDArray[np.integer]]:
 Replace the three stubs in `src/mesh_smoothing/mesh.py`:
 
 ```python
-    @classmethod
-    def load(cls, path: str) -> Mesh:
-        """Load a mesh from a VTK file written by :meth:`save`."""
-        from mesh_smoothing.io import load_mesh
+@classmethod
+def load(cls, path: str) -> Mesh:
+    """Load a mesh from a VTK file written by :meth:`save`."""
+    from mesh_smoothing.io import load_mesh
 
-        vertices, triangles = load_mesh(path)
-        return cls(vertices, triangles)
+    vertices, triangles = load_mesh(path)
+    return cls(vertices, triangles)
 
-    def save(self, path: str) -> None:
-        """Write the current mesh (real vertices + triangles) to a VTK file."""
-        from mesh_smoothing.io import save_mesh
 
-        save_mesh(self.real_vertices, self.real_triangles, path)
-        # AMENDMENT (2026-09-13): originally save_mesh(self.vertices, ...).
-        # self.vertices includes ghost vertices (e.g. 49 = 33 real + 16
-        # ghosts on create_ell); reloading would re-append 16 more ghosts
-        # via _rebuild() -> round-trip shape mismatch. Writing the real
-        # geometry matches the docstring and the round-trip test contract,
-        # mirroring the original out.vtk semantics (ghosts regenerate on
-        # load).
+def save(self, path: str) -> None:
+    """Write the current mesh (real vertices + triangles) to a VTK file."""
+    from mesh_smoothing.io import save_mesh
 
-    def improve(self, num_steps: int = 1) -> None:
-        """Smooth the mesh with the in-package ODT fixed-point iteration.
+    save_mesh(self.real_vertices, self.real_triangles, path)
+    # AMENDMENT (2026-09-13): originally save_mesh(self.vertices, ...).
+    # self.vertices includes ghost vertices (e.g. 49 = 33 real + 16
+    # ghosts on create_ell); reloading would re-append 16 more ghosts
+    # via _rebuild() -> round-trip shape mismatch. Writing the real
+    # geometry matches the docstring and the round-trip test contract,
+    # mirroring the original out.vtk semantics (ghosts regenerate on
+    # load).
 
-        Operates on the real (non-ghost) geometry snapshot and rebuilds the
-        graph after smoothing (equivalent of the original ``out.vtk`` round
-        trip, minus disk I/O).
-        """
-        from mesh_smoothing.smoothing import smooth_odt
 
-        x = np.asarray(self.real_vertices[:, :2], dtype=float)
-        cells = np.asarray(self.real_triangles)
-        x, cells = smooth_odt(x, cells, num_steps=num_steps)
-        self.vertices = np.column_stack((x, np.zeros(len(x))))
-        self.triangles = cells
-        self.real_vertices = np.array(self.vertices, copy=True)
-        self.real_triangles = np.array(cells, copy=True)
-        self._rebuild()
+def improve(self, num_steps: int = 1) -> None:
+    """Smooth the mesh with the in-package ODT fixed-point iteration.
+
+    Operates on the real (non-ghost) geometry snapshot and rebuilds the
+    graph after smoothing (equivalent of the original ``out.vtk`` round
+    trip, minus disk I/O).
+    """
+    from mesh_smoothing.smoothing import smooth_odt
+
+    x = np.asarray(self.real_vertices[:, :2], dtype=float)
+    cells = np.asarray(self.real_triangles)
+    x, cells = smooth_odt(x, cells, num_steps=num_steps)
+    self.vertices = np.column_stack((x, np.zeros(len(x))))
+    self.triangles = cells
+    self.real_vertices = np.array(self.vertices, copy=True)
+    self.real_triangles = np.array(cells, copy=True)
+    self._rebuild()
 ```
 
 > Note for the implementer: the ODT engine runs on 2D coordinates (the
@@ -1470,7 +1463,7 @@ def test_manufactured_solution_at_corners():
 
 
 def test_source_term_matches_closed_form():
-    expected = -(np.pi ** 2) / 2 * np.sin(np.pi / 4) ** 2
+    expected = -(np.pi**2) / 2 * np.sin(np.pi / 4) ** 2
     assert source_term(0.5, 0.5) == pytest.approx(expected)
 
 
@@ -1551,9 +1544,7 @@ def manufactured_solution(x: float, y: float) -> float:
 
 def source_term(x: float, y: float) -> float:
     """Source S(x, y) such that -laplacian(T) = S for ``manufactured_solution``."""
-    return float(
-        -(PI ** 2) / 2.0 * np.sin(PI * x / 2.0) * np.sin(PI * y / 2.0)
-    )
+    return float(-(PI**2) / 2.0 * np.sin(PI * x / 2.0) * np.sin(PI * y / 2.0))
 
 
 def _boundary_value(mesh: Mesh, volume: Volume, x: float, y: float) -> float:
@@ -1565,17 +1556,11 @@ def _boundary_value(mesh: Mesh, volume: Volume, x: float, y: float) -> float:
         if v1[1] == 1.0 and v2[1] == 1.0:  # top edge: T = sin(pi x / 2)
             return float(np.sin(PI * x / 2.0))
         if (
-            v1[0] == 0.5
-            and v2[0] == 0.5
-            and v1[1] >= 0.5
-            and v2[1] >= 0.5
+            v1[0] == 0.5 and v2[0] == 0.5 and v1[1] >= 0.5 and v2[1] >= 0.5
         ):  # inner vertical wall
             return float(np.sqrt(2.0) / 2.0 * np.sin(PI * x / 2.0))
         if (
-            v1[1] == 0.5
-            and v2[1] == 0.5
-            and v1[0] >= 0.5
-            and v2[0] >= 0.5
+            v1[1] == 0.5 and v2[1] == 0.5 and v1[0] >= 0.5 and v2[0] >= 0.5
         ):  # inner horizontal wall
             return float(np.sin(PI * y / 2.0))
     return 0.0
@@ -1626,9 +1611,7 @@ def solve_diffusion(mesh: Mesh, iterations: int = 10) -> NDArray[np.floating]:
     return np.array([volume.temperature for volume in mesh.volumes], dtype=float)
 
 
-def maximum_differences(
-    mesh: Mesh, top: int = 5
-) -> list[tuple[int, float]]:
+def maximum_differences(mesh: Mesh, top: int = 5) -> list[tuple[int, float]]:
     """Return the ``top`` largest |numerical - analytical| differences.
 
     Evaluated at every volume centroid (including fictitious volumes, as the
@@ -1722,7 +1705,9 @@ def test_main_reports_top_differences(capsys):
 
 def test_main_saves_optimized_mesh(tmp_path):
     output = tmp_path / "out.vtk"
-    rc = main(["--iterations", "1", "--top", "1", "--steps", "5", "--save", str(output)])
+    rc = main(
+        ["--iterations", "1", "--top", "1", "--steps", "5", "--save", str(output)]
+    )
     assert rc == 0
     assert output.exists() and output.stat().st_size > 0
 ```

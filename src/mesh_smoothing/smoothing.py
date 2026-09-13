@@ -72,9 +72,7 @@ def _edge_ce_ratios(
     (nodes 1,2), local edge 1 (nodes 2,0), local edge 2 (nodes 0,1).
     ce_k = -<e_{k+1},e_{k+2}>/(4A) for the edge opposite local node k.
     """
-    edges = np.vstack(
-        [cells[:, [1, 2]], cells[:, [2, 0]], cells[:, [0, 1]]]
-    )
+    edges = np.vstack([cells[:, [1, 2]], cells[:, [2, 0]], cells[:, [0, 1]]])
     ea = np.minimum(edges[:, 0], edges[:, 1])
     eb = np.maximum(edges[:, 0], edges[:, 1])
     keys = ea * len(points) + eb
@@ -164,9 +162,7 @@ def _boundary_masks(
     matching _flip_until_delaunay), so the per-cell mask is
     reshape(3, -1).T — NOT reshape(-1, 3).
     """
-    edges = np.vstack(
-        [cells[:, [0, 1]], cells[:, [1, 2]], cells[:, [2, 0]]]
-    )
+    edges = np.vstack([cells[:, [0, 1]], cells[:, [1, 2]], cells[:, [2, 0]]])
     ea = np.minimum(edges[:, 0], edges[:, 1])
     eb = np.maximum(edges[:, 0], edges[:, 1])
     keys = ea * num_points + eb
@@ -204,12 +200,8 @@ def smooth_odt(
 
     for _ in range(num_steps):
         cells = _flip_until_delaunay(points, cells)
-        areas, circumcentres, barycentres, inradii = _cell_geometry(
-            points, cells
-        )
-        is_boundary_cell, is_boundary_point = _boundary_masks(
-            cells, len(points)
-        )
+        areas, circumcentres, barycentres, inradii = _cell_geometry(points, cells)
+        is_boundary_cell, is_boundary_point = _boundary_masks(cells, len(points))
         centres = np.where(is_boundary_cell[:, None], barycentres, circumcentres)
         numerator = np.zeros_like(points)
         denominator = np.zeros(len(points))

@@ -13,15 +13,11 @@ def test_square_with_interior_vertex_matches_published_anchor():
     # simple1 in the optimesh ODT test suite: unit square + interior vertex at
     # (0.4, 0.5). One ODT step moves the interior vertex to (0.4877..., 0.5)
     # (raw target (0.5, 0.5) clamped by 0.5 * min inradius).
-    points = np.array(
-        [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.4, 0.5]]
-    )
+    points = np.array([[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.4, 0.5]])
     cells = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]])
     new_points, new_cells = smooth_odt(points, cells)
     # published anchor (1e-12 precision):
-    np.testing.assert_allclose(
-        new_points[4], [0.48769526483955306, 0.5], atol=1e-12
-    )
+    np.testing.assert_allclose(new_points[4], [0.48769526483955306, 0.5], atol=1e-12)
     # boundary vertices never move:
     np.testing.assert_allclose(new_points[:4], points[:4], atol=1e-12)
     # connectivity is preserved (already Delaunay, no flips):
