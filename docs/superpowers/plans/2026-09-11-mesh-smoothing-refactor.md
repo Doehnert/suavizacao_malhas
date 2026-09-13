@@ -988,7 +988,12 @@ def test_non_delaunay_quad_is_flipped_like_published_anchor():
     new_points, new_cells = smooth_odt(points, cells)
     # published anchor: diagonal BD appears because AC was Delaunay-invalid.
     expected = {(1, 2, 3), (0, 1, 3)}  # {B,C,D} and {A,B,D}
-    assert set(_sorted_cells(new_cells)) == expected
+    assert set(map(tuple, _sorted_cells(new_cells))) == expected
+    # AMENDMENT (2026-09-13): the original line was
+    #   assert set(_sorted_cells(new_cells)) == expected
+    # which always raises TypeError ("unhashable type: 'list'") because
+    # _sorted_cells yields lists. set(map(tuple, ...)) is the intended
+    # set-of-tuples comparison; anchor values untouched.
     # all four points are on the boundary -> unchanged
     np.testing.assert_allclose(new_points, points, atol=1e-12)
 
@@ -1374,7 +1379,14 @@ Replace the three stubs in `src/mesh_smoothing/mesh.py`:
         """Write the current mesh (real vertices + triangles) to a VTK file."""
         from mesh_smoothing.io import save_mesh
 
-        save_mesh(self.vertices, self.triangles, path)
+        save_mesh(self.real_vertices, self.real_triangles, path)
+        # AMENDMENT (2026-09-13): originally save_mesh(self.vertices, ...).
+        # self.vertices includes ghost vertices (e.g. 49 = 33 real + 16
+        # ghosts on create_ell); reloading would re-append 16 more ghosts
+        # via _rebuild() -> round-trip shape mismatch. Writing the real
+        # geometry matches the docstring and the round-trip test contract,
+        # mirroring the original out.vtk semantics (ghosts regenerate on
+        # load).
 
     def improve(self, num_steps: int = 1) -> None:
         """Smooth the mesh with the in-package ODT fixed-point iteration.
@@ -1486,7 +1498,17 @@ def test_solution_approaches_analytical(mesh):
         x, y = volume.centroid()
         error = abs(manufactured_solution(x, y) - volume.temperature)
         worst = max(worst, error)
-    assert worst < 0.2  # FVM on the smoothed mesh; dissertation values are ~1e-2
+    # AMENDMENT (2026-09-13): bound raised 0.2 -> 0.5. Implementer proved
+    # bit-exact parity with legacy Malha.resolve() (max |diff| = 1.67e-16
+    # on 64 volumes) and that LEGACY itself yields worst real-volume error
+    # 0.412058 on this mesh/problem. Root cause: legacy _boundary_value
+    # (faithfully ported) imposes T = 0 on the right edge x = 1 where the
+    # manufactured solution sin(pi x/2) sin(pi y/2) = sin(pi y/2) != 0 —
+    # an O(1) boundary-layer inconsistency inherited from the dissertation
+    # code, NOT a porting bug. Observed: worst 0.4167 (vol near (0.96,
+    # 0.377)), mean 0.0427, converged plateau by iteration 5. Solution
+    # scale |T| <= 1. The plan's "~1e-2" refers to the mean/interior scale.
+    assert worst < 0.5
 
 
 def test_maximum_differences_returns_sorted_top_k(mesh):
@@ -1567,6 +1589,13 @@ def solve_diffusion(mesh: Mesh, iterations: int = 10) -> NDArray[np.floating]:
     temperatures for every volume in ``mesh.volumes`` (also stored on each
     ``volume.temperature``).
     """
+    # AMENDMENT (2026-09-13): reset temperatures at entry. Legacy performed
+    # no reset, but every legacy run started from a freshly-built mesh
+    # (temperatures default 0.0), so resetting reproduces legacy semantics
+    # exactly while making repeated calls to solve_diffusion deterministic
+    # (cross_diffusion reads volume.temperature of the previous iteration).
+    for volume in mesh.volumes:
+        volume.temperature = 0.0
     count = len(mesh.volumes)
     for _ in range(iterations):
         matrix = np.zeros((count, count))
@@ -1652,7 +1681,7 @@ Expected: 5 passed.
 Run: `uv run pytest -v`
 Expected: all green (30 total).
 
-**NOTE ON THE TOLERANCE:** `test_solution_approaches_analytical` asserts `worst < 0.2`. If it fails, first confirm the solver outputs the dissertation-scale numbers (largest differences around 1e-2) by running `uv run python -m mesh_smoothing.cli --iterations 10` from Task 7 or a quick inline check; only if the observed error is genuinely larger than 0.2 but still "small" vs. the solution scale, raise the bound with a comment explaining the dissertation baseline. Do not loosen the bound to hide a broken solve.
+**NOTE ON THE TOLERANCE:** `test_solution_approaches_analytical` asserts `worst < 0.5` (amendments applied 2026-09-13: plan's original 0.2 bound was unsatisfiable — the legacy solver itself yields worst 0.412 on this mesh/problem due to the T=0 right-edge BC vs sin(pi y/2); parity with legacy proven to 1.67e-16; mean error 0.043, solution scale 1.0). Do not loosen the bound further to hide a broken solve.
 
 - [ ] **Step 6: Commit**
 
