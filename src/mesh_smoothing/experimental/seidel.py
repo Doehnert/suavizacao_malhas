@@ -1,6 +1,11 @@
 """Gauss-Seidel solver for structured 2D grids (reference implementation).
 
 Port of the original ``seidel.py``. Not used by the main pipeline.
+
+The neighbor-value guards below were tightened from the legacy's ``j > 0`` /
+``i > 0`` to ``j > 1`` / ``i > 1``: the excluded rows have structurally zero
+coefficients (``a_se`` is never set on j == 1, ``a_nw``/``a_sw`` never at
+i == 1 / j == 1), so the change is bit-identical to the legacy solver.
 """
 
 from __future__ import annotations
