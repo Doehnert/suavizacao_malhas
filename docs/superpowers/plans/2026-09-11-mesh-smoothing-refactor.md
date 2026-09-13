@@ -2004,8 +2004,6 @@ from __future__ import annotations
 
 import random
 
-from numpy.typing import NDArray
-
 from mesh_smoothing.node import Node
 
 
