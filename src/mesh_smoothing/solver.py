@@ -19,35 +19,48 @@ def manufactured_solution(x: float, y: float) -> float:
 
 
 def source_term(x: float, y: float) -> float:
-    """Source S(x, y) such that -laplacian(T) = S for ``manufactured_solution``."""
+    """Legacy ``Sp`` convention source (malha.py): returns +laplacian(T).
+
+    The physical manufactured source satisfies -laplacian(T) = S with
+    S = +(pi^2)/2 * sin(pi x / 2) * sin(pi y / 2); this function returns
+    -S (the legacy sign convention), so the solver assembles
+    ``rhs = -source_term(...) * area + cross_sum``.
+    """
     return float(
         -(PI ** 2) / 2.0 * np.sin(PI * x / 2.0) * np.sin(PI * y / 2.0)
     )
 
 
 def _boundary_value(mesh: Mesh, volume: Volume, x: float, y: float) -> float:
-    """Dirichlet value imposed on a fictitious volume from its boundary edge."""
+    """Dirichlet value imposed on a fictitious volume from its boundary edge.
+
+    Faithful to legacy ``malha.py``: every matching permutation overwrites
+    the value (last match wins), it does not short-circuit on the first
+    match. Identical results on the ell domain (at most one condition ever
+    matches per ghost here), kept verbatim for port fidelity.
+    """
     endpoints = (volume.p1.label, volume.p2.label, volume.p3.label)
+    value = 0.0
     for n1, n2 in itertools.permutations(endpoints, 2):
         v1 = mesh.vertices[n1]
         v2 = mesh.vertices[n2]
         if v1[1] == 1.0 and v2[1] == 1.0:  # top edge: T = sin(pi x / 2)
-            return float(np.sin(PI * x / 2.0))
+            value = float(np.sin(PI * x / 2.0))
         if (
             v1[0] == 0.5
             and v2[0] == 0.5
             and v1[1] >= 0.5
             and v2[1] >= 0.5
         ):  # inner vertical wall
-            return float(np.sqrt(2.0) / 2.0 * np.sin(PI * x / 2.0))
+            value = float(np.sqrt(2.0) / 2.0 * np.sin(PI * x / 2.0))
         if (
             v1[1] == 0.5
             and v2[1] == 0.5
             and v1[0] >= 0.5
             and v2[0] >= 0.5
         ):  # inner horizontal wall
-            return float(np.sin(PI * y / 2.0))
-    return 0.0
+            value = float(np.sin(PI * y / 2.0))
+    return value
 
 
 def solve_diffusion(mesh: Mesh, iterations: int = 10) -> NDArray[np.floating]:
@@ -86,7 +99,7 @@ def solve_diffusion(mesh: Mesh, iterations: int = 10) -> NDArray[np.floating]:
                 matrix[index, index] = direct_sum
 
         temperatures = np.linalg.solve(matrix, rhs)
-        for volume, temperature in zip(mesh.volumes, temperatures):
+        for volume, temperature in zip(mesh.volumes, temperatures, strict=True):
             volume.temperature = float(temperature)
 
     return np.array([volume.temperature for volume in mesh.volumes], dtype=float)

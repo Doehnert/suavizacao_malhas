@@ -39,19 +39,27 @@ def test_solve_is_finite_and_deterministic(mesh):
 def test_solution_approaches_analytical(mesh):
     solve_diffusion(mesh, iterations=10)
     worst = 0.0
+    total = 0.0
+    count = 0
     for volume in mesh.volumes:
         if volume.fictitious:
             continue
         x, y = volume.centroid()
         error = abs(manufactured_solution(x, y) - volume.temperature)
         worst = max(worst, error)
-    # AMENDMENT (2026-09-13): bound raised 0.2 -> 0.5. The legacy solver
-    # (parity proven to 1e-16) itself yields worst error ~0.412 because it
-    # imposes T = 0 on the right edge x = 1 where the manufactured solution
-    # is sin(pi y / 2) != 0 — an O(1) boundary-layer inconsistency inherited
-    # from the dissertation code, not a porting bug. Observed worst ~0.417,
-    # mean ~0.043; solution scale is |T| <= 1.
+        total += error
+        count += 1
+    mean = total / count
+    # AMENDMENT (2026-09-13): bound raised 0.2 -> 0.5. On this (improved)
+    # fixture mesh the legacy solver itself yields worst real-volume error
+    # ~0.4167 (reproduced independently; parity with the port ~1e-16) because
+    # it imposes T = 0 on the right edge x = 1 where the manufactured
+    # solution is sin(pi y / 2) != 0 — an O(1) boundary-layer inconsistency
+    # inherited from the dissertation code, not a porting bug. Mean ~0.043;
+    # solution scale is |T| <= 1. The mean bound (< 0.08) additionally
+    # catches a flipped source-sign regression (measured ~0.091).
     assert worst < 0.5
+    assert mean < 0.08
 
 
 def test_maximum_differences_returns_sorted_top_k(mesh):

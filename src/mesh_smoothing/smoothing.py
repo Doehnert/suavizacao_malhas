@@ -20,7 +20,12 @@ EPS = 1.0e-12
 
 def _cell_geometry(
     points: NDArray[np.floating], cells: NDArray[np.integer]
-) -> tuple[NDArray[np.floating], NDArray[np.floating], NDArray[np.floating], NDArray[np.floating]]:
+) -> tuple[
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+    NDArray[np.floating],
+]:
     """Per-cell area, circumcentre, barycentre, and inradius.
 
     Half-edges: e0 = P2-P1, e1 = P0-P2, e2 = P1-P0.
@@ -67,7 +72,6 @@ def _edge_ce_ratios(
     (nodes 1,2), local edge 1 (nodes 2,0), local edge 2 (nodes 0,1).
     ce_k = -<e_{k+1},e_{k+2}>/(4A) for the edge opposite local node k.
     """
-    ncells = len(cells)
     edges = np.vstack(
         [cells[:, [1, 2]], cells[:, [2, 0]], cells[:, [0, 1]]]
     )
